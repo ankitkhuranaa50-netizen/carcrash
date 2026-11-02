@@ -485,6 +485,11 @@ footer{
   .shell>footer{grid-column:1/-1}
   .qr-box{max-width:340px}
 }
+.offer{margin:14px auto 0;max-width:420px;padding:12px 14px;border-radius:14px;background:rgba(255,212,0,.10);border:1px solid rgba(255,212,0,.45);text-align:center;font-size:14px;line-height:1.4}
+.offer[hidden]{display:none}
+.offer b{display:block;color:#ffd400;margin-bottom:8px}
+.offer .bar{height:8px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;margin:0 0 6px}
+.offer .bar i{display:block;height:100%;width:0;background:#ffd400;border-radius:99px;transition:width .6s}
 </style>
 </head>
 <body>
@@ -493,7 +498,7 @@ footer{
 
   <!-- ============================ 1. HERO ============================ -->
   <section class="hero">
-    <div class="badge">200+ Shorts · One-time ₹29</div>
+    <div class="badge">200+ Shorts · One-time <span class="js-price">₹29</span></div>
 
     <h1>200+ Car Crash <span class="accent">Shorts Bundle</span></h1>
 
@@ -504,18 +509,24 @@ footer{
     </div>
 
     <div class="price-row">
-      <span class="price-old">₹44</span>
-      <span class="price-now">₹29</span>
-      <span class="price-off">34% Off</span>
+      <span class="price-old" id="p-old">₹44</span>
+      <span class="price-now" id="p-now">₹29</span>
+      <span class="price-off" id="p-off">34% Off</span>
+    </div>
+
+    <div class="offer" id="offer" hidden>
+      <b>Launch offer: first <span id="of-limit">10</span> buyers pay only ₹<span id="of-price">19</span></b>
+      <div class="bar" aria-hidden="true"><i id="of-bar"></i></div>
+      <span id="of-text"></span>
     </div>
 
     <div class="status">
       <span>Drive link sent after payment check · usually within minutes, longer if we are offline</span>
     </div>
 
-    <a class="btn btn-pay" href="#pay">Pay ₹29 &amp; Get Access</a>
+    <a class="btn btn-pay" href="#pay">Pay <span class="js-price">₹29</span> &amp; Get Access</a>
 
-    <p class="under-btn">200+ shorts · one-time ₹29 · lifetime Drive access</p>
+    <p class="under-btn">200+ shorts · one-time <span class="js-price">₹29</span> · lifetime Drive access</p>
     <p class="trust">Pay by UPI · Link sent on Telegram</p>
   </section>
 
@@ -578,7 +589,7 @@ footer{
     <ol class="steps">
       <li>
         <div>
-          <b>Pay ₹29 on the UPI QR below</b>
+          <b>Pay <span class="js-price">₹29</span> on the UPI QR below</b>
           <span>Any UPI app works — GPay, PhonePe, Paytm.</span>
         </div>
       </li>
@@ -601,12 +612,12 @@ footer{
   <section class="card center reveal" id="pay">
     <div class="card-title" style="justify-content:center;">
       <span class="dot" aria-hidden="true"></span>
-      <h2>Pay ₹29 here</h2>
+      <h2>Pay <span class="js-price">₹29</span> here</h2>
     </div>
 
     <p class="muted d-only" style="margin:0 0 14px">Scan this QR with the UPI app on your phone.</p>
     <div class="qr-box">
-      <img src="qr.png" alt="UPI QR code for ₹29 payment to Ankit Khurana" width="600" height="600">
+      <img id="qrimg" src="qr.png" alt="UPI QR code for ₹29 payment to Ankit Khurana" width="600" height="600">
     </div>
 
     <p class="upi-id">Paying to <b style="font-family:inherit;font-size:inherit;color:#fff">Ankit Khurana</b><br>UPI ID: <b>khuranaankit34@okicici</b></p>
@@ -618,7 +629,7 @@ footer{
       <a class="btn btn-app" data-app="other" href="#pay">Other UPI app</a>
     </div>
     <div class="apps">
-      <a class="btn btn-app" href="qr.png" download="pay-29-qr.png">Save QR</a>
+      <a class="btn btn-app" id="saveqr" href="qr.png" download="pay-29-qr.png">Save QR</a>
       <button class="btn btn-app" id="copyupi" type="button">Copy UPI ID</button>
     </div>
 
@@ -692,18 +703,60 @@ document.getElementById('copyupi').addEventListener('click',function(){
 (function(){
   var ua=navigator.userAgent,android=/Android/i.test(ua),ios=/iPhone|iPad/i.test(ua),mobile=android||ios;
   document.documentElement.classList.add(mobile?'is-mobile':'is-desktop');
-  var Q='pa=khuranaankit34@okicici&pn=Ankit%20Khurana&am=29&cu=INR';
   var map={
     gpay:{pkg:'com.google.android.apps.nbu.paisa.user',ios:'gpay://upi/pay?'},
     phonepe:{pkg:'com.phonepe.app',ios:'phonepe://pay?'},
     paytm:{pkg:'net.one97.paytm',ios:'paytmmp://pay?'},
     other:{pkg:'',ios:'upi://pay?'}
   };
-  var links=document.querySelectorAll('[data-app]');
-  for(var i=0;i<links.length;i++){
-    var m=map[links[i].getAttribute('data-app')];
-    links[i].href=android?('intent://pay?'+Q+'#Intent;scheme=upi;'+(m.pkg?'package='+m.pkg+';':'')+'end'):(m.ios+Q);
+  function setPayAmount(price){
+    var Q='pa=khuranaankit34@okicici&pn=Ankit%20Khurana&am='+price+'&cu=INR';
+    var links=document.querySelectorAll('[data-app]');
+    for(var i=0;i<links.length;i++){
+      var m=map[links[i].getAttribute('data-app')];
+      links[i].href=android?('intent://pay?'+Q+'#Intent;scheme=upi;'+(m.pkg?'package='+m.pkg+';':'')+'end'):(m.ios+Q);
+    }
   }
+  /* Launch offer: the numbers come from offer.json, which the bot updates only when YOU approve a real order. */
+  var D={reg:29,old:44,offer:19,limit:10,sold:0,active:false};
+  function $(id){return document.getElementById(id);}
+  function render(){
+    var price=D.active?D.offer:D.reg, strike=D.active?D.reg:D.old, i, n;
+    n=document.querySelectorAll('.js-price');
+    for(i=0;i<n.length;i++){n[i].textContent='₹'+price;}
+    $('p-now').textContent='₹'+price;
+    $('p-old').textContent='₹'+strike;
+    $('p-off').textContent=Math.round((1-price/strike)*100)+'% Off';
+    var box=$('offer');
+    if(D.active){
+      var left=D.limit-D.sold;
+      $('of-limit').textContent=D.limit;
+      $('of-price').textContent=D.offer;
+      $('of-text').textContent=D.sold+' of '+D.limit+' taken · '+left+(left===1?' slot':' slots')+' left, then ₹'+D.reg;
+      $('of-bar').style.width=Math.round(D.sold/D.limit*100)+'%';
+      box.hidden=false;
+    }else{box.hidden=true;}
+    var q=D.active?'qr-'+D.offer+'.png':'qr.png';
+    $('qrimg').src=q;
+    $('qrimg').alt='UPI QR code for ₹'+price+' payment to Ankit Khurana';
+    $('saveqr').href=q;
+    $('saveqr').setAttribute('download','pay-'+price+'-qr.png');
+    setPayAmount(price);
+  }
+  setPayAmount(D.reg);
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET','offer.json?t='+Date.now());
+  xhr.onload=function(){
+    try{
+      var d=JSON.parse(xhr.responseText);
+      if(xhr.status===200&&d.limit>0&&d.sold>=0&&d.offer_price>0&&d.offer_price<d.regular_price){
+        D.reg=d.regular_price;D.offer=d.offer_price;D.limit=d.limit;D.sold=d.sold;D.active=d.sold<d.limit;
+      }
+    }catch(e){}
+    render();
+  };
+  xhr.onerror=function(){render();};
+  xhr.send();
 })();
 </script>
 </body>
